@@ -23,7 +23,7 @@
 *  International Registered Trademark & Property of PrestaShop SA
 *}
 
-{if isset($categoryProducts) && count($categoryProducts) > 0 && $categoryProducts !== false && $category->id_category != $productDefaultCategoryId}
+{if isset($categoryProducts) && count($categoryProducts) > 0 && $categoryProducts !== false && $isSameCategory !== true}
 <div class="clearfix blockcategoryslider">
 	<h2 class="categoryslider_h2">{$category->name}</h2>
 	<div id="{if count($categoryProducts) > 5}categoryslider{else}categoryslider_noscroll{/if}">

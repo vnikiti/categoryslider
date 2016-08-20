@@ -200,7 +200,7 @@ class CategorySlider extends Module
 					'middlePosition' => (int)$middle_position,
 					'ProdDisplayPrice' => Configuration::get('CATEGORYSLIDER_DISPLAY_PRICE'),
 					'category' => $category,
-					'productDefaultCategoryId' => (int)$product->id_category_default
+					'isSameCategory' => in_array((int)$category->id_category,Product::getProductCategories($product->id|intval))
 				)
 			);
 		}
