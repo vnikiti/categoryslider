@@ -23,18 +23,12 @@
 *  International Registered Trademark & Property of PrestaShop SA
 *}
 
-{if isset($categoryProducts) && count($categoryProducts) > 0 && $categoryProducts !== false}
-<div class="clearfix blockproductscategory">
-	<h2 class="productscategory_h2">
-		{if $categoryProducts|@count == 1}
-			{l s='%s other product in the same category:' sprintf=[$categoryProducts|@count] mod='productscategory'}
-		{else}
-			{l s='%s other products in the same category:' sprintf=[$categoryProducts|@count] mod='productscategory'}
-		{/if}
-	</h2>
-	<div id="{if count($categoryProducts) > 5}productscategory{else}productscategory_noscroll{/if}">
-	{if count($categoryProducts) > 5}<a id="productscategory_scroll_left" title="{l s='Previous' mod='productscategory'}" href="javascript:{ldelim}{rdelim}">{l s='Previous' mod='productscategory'}</a>{/if}
-	<div id="productscategory_list">
+{if isset($categoryProducts) && count($categoryProducts) > 0 && $categoryProducts !== false && $category->id_category != $productDefaultCategoryId}
+<div class="clearfix blockcategoryslider">
+	<h2 class="categoryslider_h2">{$category->name}</h2>
+	<div id="{if count($categoryProducts) > 5}categoryslider{else}categoryslider_noscroll{/if}">
+	{if count($categoryProducts) > 5}<a id="categoryslider_scroll_left" title="{l s='Previous' mod='categoryslider'}" href="javascript:{ldelim}{rdelim}">{l s='Previous' mod='categoryslider'}</a>{/if}
+	<div id="categoryslider_list">
 		<ul {if count($categoryProducts) > 5}style="width: {math equation="width * nbImages" width=107 nbImages=$categoryProducts|@count}px"{/if}>
 			{foreach from=$categoryProducts item='categoryProduct' name=categoryProduct}
 			<li {if count($categoryProducts) < 6}style="width:60px"{/if}>
@@ -53,10 +47,10 @@
 			{/foreach}
 		</ul>
 	</div>
-	{if count($categoryProducts) > 5}<a id="productscategory_scroll_right" title="{l s='Next' mod='productscategory'}" href="javascript:{ldelim}{rdelim}">{l s='Next' mod='productscategory'}</a>{/if}
+	{if count($categoryProducts) > 5}<a id="categoryslider_scroll_right" title="{l s='Next' mod='categoryslider'}" href="javascript:{ldelim}{rdelim}">{l s='Next' mod='categoryslider'}</a>{/if}
 	</div>
 	<script type="text/javascript">
-		$('#productscategory_list').trigger('goto', [{$middlePosition}-3]);
+		$('#categoryslider_list').trigger('goto', [{$middlePosition}-3]);
 	</script>
 </div>
 {/if}

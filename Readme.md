@@ -2,7 +2,7 @@
 
 ## About
 
-Adds a block on the product page that displays products from the same category.
+Adds a block on the product page that displays products from a given category.
 
 ## Contributing
 

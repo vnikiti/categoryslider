@@ -27,14 +27,14 @@
 if (!defined('_PS_VERSION_'))
 	exit;
 
-class ProductsCategory extends Module
+class CategorySlider extends Module
 {
 	protected $html;
 
 	public function __construct()
 	{
-		$this->name = 'productscategory';
-		$this->version = '1.8.1';
+		$this->name = 'categoryslider';
+		$this->version = '1.0.0';
 		$this->author = 'PrestaShop';
 		$this->tab = 'front_office_features';
 		$this->need_instance = 0;
@@ -42,15 +42,16 @@ class ProductsCategory extends Module
 		$this->bootstrap = true;
 		parent::__construct();
 
-		$this->displayName = $this->l('Products in the same category');
-		$this->description = $this->l('Adds a block on the product page that displays products from the same category.');
+		$this->displayName = $this->l('Products in a given category');
+		$this->description = $this->l('Adds a block on the product page that displays products from a given category.');
 		$this->ps_versions_compliancy = array('min' => '1.6', 'max' => '1.6.99.99');
 	}
 
 	public function install()
 	{
-		Configuration::updateValue('PRODUCTSCATEGORY_DISPLAY_PRICE', 0);
-		$this->_clearCache('productscategory.tpl');
+		Configuration::updateValue('CATEGORYSLIDER_DISPLAY_PRICE', 0);
+		Configuration::updateValue('CATEGORYSLIDER_CATEGORY_ID', 0);
+		$this->_clearCache('categoryslider.tpl');
 
 		return (parent::install()
 			&& $this->registerHook('productfooter')
@@ -63,8 +64,9 @@ class ProductsCategory extends Module
 
 	public function uninstall()
 	{
-		Configuration::deleteByName('PRODUCTSCATEGORY_DISPLAY_PRICE');
-		$this->_clearCache('productscategory.tpl');
+		Configuration::deleteByName('CATEGORYSLIDER_DISPLAY_PRICE');
+		Configuration::deleteByName('CATEGORYSLIDER_CATEGORY_ID');
+		$this->_clearCache('categoryslider.tpl');
 
 		return parent::uninstall();
 	}
@@ -73,17 +75,23 @@ class ProductsCategory extends Module
 	{
 		$this->html = '';
 		if (Tools::isSubmit('submitCross') &&
-			Tools::getValue('PRODUCTSCATEGORY_DISPLAY_PRICE') != 0 &&
-			Tools::getValue('PRODUCTSCATEGORY_DISPLAY_PRICE') != 1
+			Tools::getValue('CATEGORYSLIDER_DISPLAY_PRICE') != 0 &&
+			Tools::getValue('CATEGORYSLIDER_DISPLAY_PRICE') != 1
 		)
 			$this->html .= $this->displayError('Invalid displayPrice.');
+		
+		// TODO: Add validation for category ID
 		elseif (Tools::isSubmit('submitCross'))
 		{
 			Configuration::updateValue(
-				'PRODUCTSCATEGORY_DISPLAY_PRICE',
-				Tools::getValue('PRODUCTSCATEGORY_DISPLAY_PRICE')
+				'CATEGORYSLIDER_DISPLAY_PRICE',
+				Tools::getValue('CATEGORYSLIDER_DISPLAY_PRICE')
 			);
-			$this->_clearCache('productscategory.tpl');
+			Configuration::updateValue(
+					'CATEGORYSLIDER_CATEGORY_ID',
+					Tools::getValue('CATEGORYSLIDER_CATEGORY_ID')
+			);
+			$this->_clearCache('categoryslider.tpl');
 			$this->html .= $this->displayConfirmation($this->l('Settings updated successfully.'));
 		}
 		$this->html .= $this->renderForm();
@@ -110,20 +118,13 @@ class ProductsCategory extends Module
 		$id_product = (int)$params['product']->id;
 		$product = $params['product'];
 
-		$cache_id = 'productscategory|'.$id_product.'|'.(isset($params['category']->id_category) ? (int)$params['category']->id_category : (int)$product->id_category_default);
+		$cache_id = 'categoryslider|'.$id_product.'|'.(isset($params['category']->id_category) ? (int)$params['category']->id_category : (int)$product->id_category_default);
 
-		if (!$this->isCached('productscategory.tpl', $this->getCacheId($cache_id)))
+		$category_id = Configuration::get('CATEGORYSLIDER_CATEGORY_ID');
+		$category = new Category($category_id, $this->context->language->id);
+		
+		if (!$this->isCached('categoryslider.tpl', $this->getCacheId($cache_id)))
 		{
-
-			$category = false;
-			if (isset($params['category']->id_category))
-				$category = $params['category'];
-			else
-			{
-				if (isset($product->id_category_default) && $product->id_category_default > 1)
-					$category = new Category((int)$product->id_category_default);
-			}
-
 			if (!Validate::isLoadedObject($category) || !$category->active)
 				return false;
 
@@ -145,7 +146,7 @@ class ProductsCategory extends Module
 				}
 
 				$taxes = Product::getTaxCalculationMethod();
-				if (Configuration::get('PRODUCTSCATEGORY_DISPLAY_PRICE'))
+				if (Configuration::get('CATEGORYSLIDER_DISPLAY_PRICE'))
 				{
 					foreach ($category_products as $key => $category_product)
 					{
@@ -197,20 +198,22 @@ class ProductsCategory extends Module
 				array(
 					'categoryProducts' => $category_products,
 					'middlePosition' => (int)$middle_position,
-					'ProdDisplayPrice' => Configuration::get('PRODUCTSCATEGORY_DISPLAY_PRICE')
+					'ProdDisplayPrice' => Configuration::get('CATEGORYSLIDER_DISPLAY_PRICE'),
+					'category' => $category,
+					'productDefaultCategoryId' => (int)$product->id_category_default
 				)
 			);
 		}
 
-		return $this->display(__FILE__, 'productscategory.tpl', $this->getCacheId($cache_id));
+		return $this->display(__FILE__, 'categoryslider.tpl', $this->getCacheId($cache_id));
 	}
 
 	public function hookHeader($params)
 	{
 		if (!isset($this->context->controller->php_self) || $this->context->controller->php_self != 'product')
 			return;
-		$this->context->controller->addCSS($this->_path.'css/productscategory.css', 'all');
-		$this->context->controller->addJS($this->_path.'js/productscategory.js');
+		$this->context->controller->addCSS($this->_path.'css/categoryslider.css', 'all');
+		$this->context->controller->addJS($this->_path.'js/categoryslider.js');
 		$this->context->controller->addJqueryPlugin(array('scrollTo', 'serialScroll', 'bxslider'));
 	}
 
@@ -221,8 +224,8 @@ class ProductsCategory extends Module
 		$id_product = (int)$params['product']->id;
 		$product = $params['product'];
 
-		$cache_id = 'productscategory|'.$id_product.'|'.(isset($params['category']->id_category) ? (int)$params['category']->id_category : (int)$product->id_category_default);
-		$this->_clearCache('productscategory.tpl', $this->getCacheId($cache_id));
+		$cache_id = 'categoryslider|'.$id_product.'|'.(isset($params['category']->id_category) ? (int)$params['category']->id_category : (int)$product->id_category_default);
+		$this->_clearCache('categoryslider.tpl', $this->getCacheId($cache_id));
 	}
 
 	public function hookUpdateProduct($params)
@@ -232,8 +235,8 @@ class ProductsCategory extends Module
 		$id_product = (int)$params['product']->id;
 		$product = $params['product'];
 
-		$cache_id = 'productscategory|'.$id_product.'|'.(isset($params['category']->id_category) ? (int)$params['category']->id_category : (int)$product->id_category_default);
-		$this->_clearCache('productscategory.tpl', $this->getCacheId($cache_id));
+		$cache_id = 'categoryslider|'.$id_product.'|'.(isset($params['category']->id_category) ? (int)$params['category']->id_category : (int)$product->id_category_default);
+		$this->_clearCache('categoryslider.tpl', $this->getCacheId($cache_id));
 	}
 
 	public function hookDeleteProduct($params)
@@ -243,12 +246,14 @@ class ProductsCategory extends Module
 		$id_product = (int)$params['product']->id;
 		$product = $params['product'];
 
-		$cache_id = 'productscategory|'.$id_product.'|'.(isset($params['category']->id_category) ? (int)$params['category']->id_category : (int)$product->id_category_default);
-		$this->_clearCache('productscategory.tpl', $this->getCacheId($cache_id));
+		$cache_id = 'categoryslider|'.$id_product.'|'.(isset($params['category']->id_category) ? (int)$params['category']->id_category : (int)$product->id_category_default);
+		$this->_clearCache('categoryslider.tpl', $this->getCacheId($cache_id));
 	}
 
 	public function renderForm()
 	{
+		$cateogires = Category::getCategories( (int)($this->context->language->id), true, false  );
+
 		$fields_form = array(
 			'form' => array(
 				'legend' => array(
@@ -260,7 +265,7 @@ class ProductsCategory extends Module
 						'type' => 'switch',
 						'label' => $this->l('Display products\' prices'),
 						'desc' => $this->l('Show the prices of the products displayed in the block.'),
-						'name' => 'PRODUCTSCATEGORY_DISPLAY_PRICE',
+						'name' => 'CATEGORYSLIDER_DISPLAY_PRICE',
 						'values' => array(
 							array(
 								'id' => 'active_on',
@@ -274,6 +279,18 @@ class ProductsCategory extends Module
 							)
 						),
 					),
+					array(
+						'type' => 'select',
+						'label' => $this->l('Category:'),
+						'name' => 'CATEGORYSLIDER_CATEGORY_ID',
+						'required' => true,
+						'options' => array(
+								'query' => $cateogires,
+								'id' => 'id_category',
+								'value' => 'id_category',
+								'name' => 'name'
+						)
+					)
 				),
 				'submit' => array(
 					'title' => $this->l('Save'),
@@ -308,10 +325,14 @@ class ProductsCategory extends Module
 	public function getConfigFieldsValues()
 	{
 		return array(
-			'PRODUCTSCATEGORY_DISPLAY_PRICE' => Tools::getValue(
-					'PRODUCTSCATEGORY_DISPLAY_PRICE',
-					Configuration::get('PRODUCTSCATEGORY_DISPLAY_PRICE')
-				),
+			'CATEGORYSLIDER_DISPLAY_PRICE' => Tools::getValue(
+					'CATEGORYSLIDER_DISPLAY_PRICE',
+					Configuration::get('CATEGORYSLIDER_DISPLAY_PRICE')
+					),
+			'CATEGORYSLIDER_CATEGORY_ID' => Tools::getValue(
+					'CATEGORYSLIDER_CATEGORY_ID', 
+					Configuration::get('CATEGORYSLIDER_CATEGORY_ID')
+				)
 		);
 	}
 
